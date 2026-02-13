@@ -1,0 +1,1956 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LBS:VLTN-14</title>
+  <style>
+    @font-face {
+        font-family: "DungGeunMo";
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff") format("woff");
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    .owner-unstable {
+        color: #b96868;
+    }
+
+    .owner-lost {
+        color: #c7454e;
+    }
+
+    @keyframes cardJitter {
+        0%   { transform: translate(0,0); }
+        25%  { transform: translate(-0.5px, 0.3px); }
+        50%  { transform: translate(0.4px, -0.4px); }
+        75%  { transform: translate(-0.3px, 0.2px); }
+        100% { transform: translate(0,0); }
+    }
+
+    .card.jitter {
+        animation: cardJitter 0.22s linear infinite;
+    }
+
+    #sessionOwner{
+        opacity:.78;
+        letter-spacing:.02em;
+    }
+    #sessionOwner, .protocol{
+        line-height:1.4;
+    }
+
+    .protocol{
+        margin-top:4px;
+        font-size:11px;
+        opacity: .55;
+    }
+
+    @keyframes pop {
+        0% {
+            transform: scale(0.6);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.15);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .heart.pop {
+        animation: pop 0.45s ease-out forwards;
+    }
+
+    body{
+      margin:0; height:100vh; display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(900px circle at 30% 20%, rgba(46,144,250,.12), transparent 55%),
+        radial-gradient(700px circle at 80% 75%, rgba(255,255,255,.06), transparent 60%),
+        #0b0f14;
+      background-repeat: no-repeat;
+      color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    
+    .card{
+      width:min(520px, 92vw);
+      border:1px solid rgba(255, 255, 255, 0.12);
+      border-radius:16px;
+      padding:26px 24px;
+      background:rgba(10, 14, 20, 0.55);
+      box-shadow:
+        0 10px 30px rgba(0,0,0,.35),
+        0 0 0 1px rgba(46,144,250,.10),
+        0 0 0 1px rgba(255, 90, 122, 0.06);
+    }
+    .title{
+        font-size:13px;
+        opacity:.7; 
+        letter-spacing:.02em;
+        margin-bottom:6px;
+    }
+    
+    .targetName {
+        font-size:18px;
+        font-weight:600;
+        margin:0 0 14px;
+        letter-spacing: .02em;
+    }
+
+    .status{
+        font-size:14px; 
+        opacity:.92; 
+        margin:0 0 14px; 
+        min-height: 22px; 
+        line-height:1.55;
+    }
+
+    .bar{
+      height:12px; border-radius:999px; overflow:hidden;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(120deg, rgba(46,144,250,.35), rgba(46,144,250,.95));
+      box-shadow: 0 0 18px rgba(46,144,250,.22);
+      transition: width .12s ease;
+    }
+    .row{
+        display:flex;
+        justify-content:space-between;
+        margin-top:12px;
+        font-size:12px;
+        opacity:.85;
+        margin-top:12px;
+        padding-top:10px;
+        border-top:1px solid rgba(255,255,255,.08);
+    }
+    .error{
+      margin-top:14px;
+      padding:12px 12px;
+      border-radius:6px;
+      border:1px solid rgba(255, 88, 88, .35);
+      background: rgba(255, 88, 88, .08);
+      display:none;
+    }
+    .error strong{color:#ff6b6b;}
+
+    button{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);
+      color:#e6edf3;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button:hover{background:rgba(255,255,255,.12);}
+    .overlay{
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items:center;
+        justify-content:center;
+        background:
+            radial-gradient(900px circle at 30% 20%, rgba(46,144,250,.12), transparent 55%),
+            radial-gradient(700px circle at 80% 75%, rgba(255,255,255,.06), transparent 60%),
+            #0b0f14;
+        background-repeat: no-repeat;
+        z-index:999;
+    }
+    .boot{
+        display: flex;
+        flex-direction:column;
+        align-items:center;
+        gap:12px;
+        text-align:center;
+    }
+
+    .bootText{ font-size:16px; opacity: .95;}
+    .bootSub{ font-size: 12px; opacity: .65;}
+
+    .heart{
+        display:none;
+        width:48px;
+        height:48px;
+        border-radius:50%;
+        border:3px solid rgba(255, 90, 122, 0.95);
+        align-items:center;
+        justify-content:center;
+        font-size:28px;
+        line-height:1;
+        color: rgba(255, 90, 122, 0.95);
+    }
+
+    .spinner{
+        width:48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3px solid rgba(255,255,255,.18);
+        border-top-color: rgba(46,144,250,.95);
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin{
+        to {transform: rotate(360deg);}
+    }
+
+    /* blink animation */
+    @keyframes blinkIn {
+        from {opacity: .25;}
+        to { opacity: .95;}
+        
+    }
+
+    .status.pulse{
+        animation: blinkIn .4s ease-out;
+    }
+
+    .capFeedback.blink {
+        animation: blinkIn .2s ease-out;
+    }
+
+    /* */
+
+
+    #mainCard{
+        display:none;
+    }
+
+    .errorPage{
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: #f6f7fb;
+        color: #111;
+        z-index: 3000;
+        font-size: 14px;
+
+        font-family: "DungGeunMo", monospace;
+    }
+
+    .errorPage * {
+        letter-spacing: 0.02em;
+    }
+    
+    .errorPage.show{ display: block;}
+
+    .errorWrap{
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 64px 22px 40px;
+    }
+
+    .errorTop{
+        /* display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px; */
+        border-bottom: 1px solid #e6e6ea;
+        padding-bottom: 18px;
+        margin-bottom: 22px;
+    }
+
+    
+    .errorIcon{
+        display: inline-block;
+        font-size: 50px;      
+        line-height: 1;
+        color:rgba(0, 0, 0, 0.95);
+        margin-bottom: 2px;  
+    }
+
+    .incident{
+        font-size: 19px;
+        opacity:.7;
+        text-align: right;
+        white-space:nowrap;
+        margin-top:6px;
+    }
+
+    .errorTitle{
+        font-size:55px;
+        letter-spacing: -0.04em;
+        margin: 2px 0 0;
+        font-weight:900;
+        line-height:1.05;
+    }
+
+    .errorTitle::after{
+        content:"";
+        display: block;
+        margin-top:14px;
+        width:86px;
+        height:6px;
+        border-radius:999px;
+        background:#111;
+        opacity:.12;
+    }
+
+    .errorSub{
+        margin-top:8px;
+        font-size:19px;
+        color:#666;
+    }
+
+    .errorBody{
+        font-size:16px;
+        line-height:1.8;
+        color:#222;
+    }
+
+
+    .monoBox{
+        font-size:13px;
+        color: rgba(0,0,0,.45);
+        margin-top:0;
+        padding:10px 12px;
+        border: 0;
+        background:transparent;
+        border-radius:0;
+        overflow:auto;
+        line-height:1.6;
+    }
+
+    .errorActions{
+        margin-top:18px;
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+    }
+
+    .btnPrimary{
+        border:1px solid #111;
+        
+        background: #111;
+        color: #fff;
+        
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 800;
+        cursor: pointer;
+        
+        font-family: "DungGeunMo", monospace; 
+        font-size: 18px;                     
+        letter-spacing: 0.02em;
+
+        transition: transform .12s steps(2, end), box-shadow .12s ease, background .12s ease;
+        box-shadow: 0 6px 0 rgba(0,0,0,.25);
+    }
+
+
+    .btnPrimary:hover{
+        background: #fff;
+        color: #111;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 rgba(0,0,0,.25), 0 0 0 3px rgba(0,0,0,.12);
+    }
+
+    .btnPrimary:active{
+        background: #eaeaea;
+        color: #111;
+        transform: translateY(3px);
+        box-shadow: 0 3px 0 rgba(0,0,0,.25);
+    }
+
+    .metaSpacer{
+        height:36px;
+    }
+
+    .cursorHeart{
+        position:fixed;
+        left: 0;
+        top: 0;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 9999;
+
+        color: #111;
+
+        width: 26px;
+        height: 26px;
+
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+    }
+
+
+    @keyframes pixelIn{
+        0%{
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0,4);
+        }
+
+        30%{
+            opacity: 1;
+            transform: translate(-50%, -60%) scale(1);
+        }
+
+        100%{
+            opacity: 1;
+            transform: translate(-50%, -95%) scale(0.85);
+        }
+    }
+
+    .cursorHeart.pop {
+        animation: pixelIn 220ms steps(4, end) forwards;
+    }
+
+    .captcha{
+        display: none;
+        margin-top:16px;
+        padding: 14px 14px 16px;
+        border: 2px solid rgba(0,0,0,.75);
+        background: #fff;
+        box-shadow: 0 6px 0 rgba(0,0,0,.18);
+    }
+
+    .captcha.show{
+        display:block;
+        animation: captchaIn 220ms steps(4,end) both;
+    }
+    
+    .captchaHead{
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .captchaTitle{
+        font-size:18px;
+        color: #111;
+    }
+
+    .captchaSub{
+        font-size: 12px;
+        opacity: .6;
+    }
+
+    .captchaLine{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select:none;
+    }
+    .captchaLine input{
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .pxBox{
+        width: 18px;
+        height: 18px;
+        border: 2px solid #111;
+        background-color: #fff;
+        box-shadow: 0 3px 0 rgba(0,0,0,.25);
+        position: relative;
+    }
+    
+    #captchaChk:checked + .pxBox:after{
+        content:"";
+        position: absolute;
+        left: 3px;
+        top:3px;
+        width:10px;
+        height:10px;
+        background: #111;
+
+    }
+
+    .captchaText{
+        font-size:18px;
+        color:#111;
+    }
+
+    .captchaHint{
+        margin-top:10px;
+        font-size:12px;
+        opacity: .6;
+    }
+
+    @keyframes flickerStep{
+        0%{ filter:none; transform:none; }
+        50%{ filter: contrast(1.08) brightness(1.02); }
+        100%{ filter:none; }
+    }
+
+    .errorBody.wipe{
+        animation: flickerStep 180ms steps(2,end) 1;
+    }
+
+    @keyframes captchaIn{
+        0%{ transform: translateY(6px); opacity: 0;}
+        100%{ transform: translateY(0); opacity: 1;}
+    }
+
+    .captcha.show{
+        animation: captchaIn 220ms steps(4,end) both;
+    }
+
+   
+
+    .puzzleItem{
+        position: relative;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        box-shadow: none;
+        overflow: hidden;
+        border-radius: 0;
+    }
+
+ 
+
+    .puzzleItem.selected{
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 rgba(0,0,0,.25);
+        filter: brightness(0.85);
+    }
+
+
+    /*  퍼즐 스테이지 레이아웃 */
+    .stageWrap{
+        width: min(1100px, 94vw);
+        margin: 0 auto;
+    }
+
+    .stageRow{
+        display: flex;
+        gap: 22px;
+        align-items: flex-start;
+        justify-content: flex-start; 
+    }
+
+
+    .capPanel{
+        width: 360px;                 
+        max-width: 92vw;             
+        background: #fff;
+        color: #111;
+        border: 2px solid rgba(0,0,0,.75);
+        box-shadow: 0 6px 0 rgba(0,0,0,.18);
+        padding: 14px;
+        font-family: "DungGeunMo", monospace;
+    }
+
+    .capMeta{
+        font-size: 12px;
+        opacity: .55;
+        margin-bottom: 8px;
+    }
+
+    .capTitle{
+        font-size: 22px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .capDesc{
+        font-size: 12px;
+        opacity: .7;
+        margin-bottom: 10px;
+    }
+
+
+    .puzzleGrid{
+        display:grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+
+    .puzzleItem{
+        position: relative;
+        background: #000;
+        cursor: pointer;
+        aspect-ratio: 1 / 1;          
+        overflow: hidden;
+        user-select: none;
+    }
+
+    .puzzleItem img{
+        width:100%;
+        height:100%;
+        display:block;
+        object-fit: cover;           
+    }
+
+    .puzzleItem.selected{
+        transform: translateY(2px);
+        outline: none;
+        filter: brightness(0.85);
+    }
+
+    .puzzleItem.selected::after{
+        content: "";
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+    }
+
+    .puzzleItem:hover img{
+        filter: contrast(1.03) brightness(1.02);
+    }
+
+  
+    .capActions{
+        margin-top: 10px;
+        display:flex;
+        justify-content: flex-end;
+    }
+
+    .capFeedback{
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: .8;
+        min-height: 16px;
+    }
+
+    #captchaStage.overlay{
+        background: #f6f7fb !important;
+    }
+
+    /* valentine page */
+    #valentineStage .capPanel {
+        width: min(820px, 94vw);
+        padding: 34px 34px 30px;
+        border: 4px solid rgba(0, 0, 0, 0.85);
+        box-shadow: 0 12px 0 rgba(0,0,0,.18);
+        text-align: center;
+    }
+
+    #valentineStage .capMeta{
+        font-size: 16px;
+        opacity: .6;
+        margin-bottom: 12px;
+        letter-spacing: .06em;
+    }
+
+    #valentineStage .capTitle{
+        font-size: clamp(34px, 4.2vw, 58px) !important;
+        line-height: 1.05;
+        margin-bottom: 12px;
+    }
+
+    #valentineStage .capDesc{
+        font-size: 18px;
+        opacity: .75;
+        margin-bottom: 18px;
+    }
+
+    #noBtn{
+    position: relative;
+    will-change: transform;
+    transition: transform 80ms steps(2, end); 
+        }   
+
+    #valentineFeedback{
+        min-height: 28px;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: .02em;
+        margin: 14px 0 16px;
+
+        background-color: rgba(0,0,0,.02);
+        border: 1px solid rgba(0,0,0,.25);
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+
+    #valentineStage.overlay{
+        background: #f6f7fb;
+        
+    }
+
+
+    #valentineStage .capActions{
+        justify-content: center !important;
+        gap: 18px !important;
+    }
+
+    #valentineStage .btnPrimary{
+        font-size: 24px;
+        padding: 16px 28px;
+        border-radius: 12px;
+        box-shadow: 0 10px 0 rgba(0,0,0,.25);
+        transition: transform .10s steps(2, end), box-shadow .10s ease, background .10s ease;
+    }
+
+    .capFeedback.blink{
+        animation: blinkIn .20s ease-out;
+    }
+
+    @keyframes panelPop {
+        0% {transform: translateY(10px) scale(.98); opacity:0;}
+        100% {transform: translateY(0) scale(1); opacity: 1;}
+    }
+    #valentineStage .capPanel{
+        animation: panelPop 180ms steps(3,end) both;
+    }
+
+    /* ===== NO battle screen ===== */
+    .battleWrap{ width: min(760px, 94vw); }
+
+    .battleImg{
+        width: 100%;
+        height: auto;
+        display:block;
+        border: 4px solid rgba(0,0,0,.85);
+        box-shadow: 0 10px 0 rgba(0,0,0,.18);
+        background:#000;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+    }
+
+    .battleBox{
+        margin-top: 10px;
+        background: #fff;
+        color:#111;
+        border: 4px solid rgba(0,0,0,.85);
+        box-shadow: 0 10px 0 rgba(0,0,0,.18);
+        padding: 14px 16px 10px;
+        font-family: "DungGeunMo", monospace;
+        cursor: pointer;
+        user-select:none;
+        outline: none;
+    }
+
+    .battleText{
+        font-size: 22px;
+        line-height: 1.55;
+        min-height: 64px;
+        white-space: pre-wrap;
+    }
+
+    .battleHint{
+        display:flex;
+        justify-content:flex-end;
+        align-items:center;
+        gap: 8px;
+        margin-top: 8px;
+        opacity: .85;
+        font-size: 14px;
+    }
+
+    @keyframes arrowBlink{ 0%,49%{opacity:0;} 50%,100%{opacity:1;} }
+    .battleArrow{ animation: arrowBlink 700ms steps(2,end) infinite; font-size:16px; }
+    .battleHintText{ opacity:.55; }
+
+    #noBattleStage.overlay{
+        background: #f6f7fb;
+    }
+
+    /* ===== YES CLEAR (night + pixel fireworks) ===== */
+#yesClearStage.overlay{
+  background:
+    radial-gradient(900px circle at 30% 20%, rgba(46,144,250,.18), transparent 55%),
+    radial-gradient(700px circle at 80% 75%, rgba(255,255,255,.08), transparent 60%),
+    #070a10; /* 더 밤 */
+}
+
+.clearWrap{
+  position: relative;
+  width: min(900px, 94vw);
+  height: min(560px, 80vh);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.clearPanel{
+  position: relative;
+  z-index: 2;
+  width: min(720px, 92vw);
+  background: rgba(10, 14, 20, .55);
+  border: 2px solid rgba(255,255,255,.22);
+  box-shadow: 0 16px 0 rgba(0,0,0,.28), 0 0 0 1px rgba(46,144,250,.15);
+  border-radius: 18px;
+  padding: 34px 26px 22px;
+  text-align:center;
+  font-family: "DungGeunMo", monospace;
+  color:#e6edf3;
+  user-select:none;
+  outline:none;
+  animation: clearPop 220ms steps(3,end) both;
+}
+
+@keyframes clearPop{
+  0%{ transform: translateY(14px) scale(.98); opacity:0; }
+  100%{ transform: translateY(0) scale(1); opacity:1; }
+}
+
+.clearMeta{
+  opacity:.65;
+  letter-spacing:.08em;
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+.clearTitle{
+  font-size: clamp(40px, 5vw, 64px);
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  text-shadow: 0 0 18px rgba(46,144,250,.28);
+}
+
+.clearSub{
+  font-size: 22px;
+  opacity:.9;
+  margin-bottom: 18px;
+}
+
+.clearLog{
+  width: min(520px, 92%);
+  margin: 0 auto 16px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align:left;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.logLine{
+  opacity:.92;
+}
+
+.clearHint{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  opacity:.85;
+  font-size:14px;
+}
+
+/* fireworks layer */
+.fireworks{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+/* pixel particle */
+.px{
+  position:absolute;
+  width: 6px;
+  height: 6px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0;
+  transform: translate(0,0) scale(1);
+  animation: pxBurst 900ms steps(6,end) forwards;
+}
+
+@keyframes pxBurst{
+  0%   { opacity:0; transform: translate(0,0) scale(0.5); }
+  10%  { opacity:1; }
+  100% { opacity:0; transform: translate(var(--dx), var(--dy)) scale(1); }
+}
+
+/* little screen shake on first impact */
+@keyframes screenHit{
+  0%{ transform: translate(0,0); }
+  20%{ transform: translate(-2px, 1px); }
+  40%{ transform: translate(2px, -1px); }
+  60%{ transform: translate(-1px, -2px); }
+  80%{ transform: translate(1px, 2px); }
+  100%{ transform: translate(0,0); }
+}
+.clearPanel.hit{
+  animation: clearPop 220ms steps(3,end) both, screenHit 180ms steps(2,end) 1;
+}
+
+@keyframes clearFlash {
+  0% { opacity: 0; transform: scale(1.4); }
+  40% { opacity: 1; transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.clearTitle.flash {
+  animation: clearFlash 240ms steps(3,end) both;
+}
+
+
+
+/* ===== mobile layout ===== */
+@media (max-width: 768px) {
+  .stageRow {
+    display: block;      /* 세 패널을 세로로 */
+  }
+
+  .capPanel {
+    width: 100%;
+    margin-bottom: 18px;
+  }
+}
+
+
+
+
+  </style>
+</head>
+<body>
+    <div id="startScreen" class="overlay">
+        <div class="boot">
+            <div class="spinner"id="spinner" aria-hidden="true"></div>
+            <div class="heart" id="heartIcon" aria-hidden="true">❤︎</div>
+            <div class="bootText" id="bootText">연결 대상 식별 중...</div>
+        </div>
+    </div>
+    <div class="card" id="mainCard">
+        <div class="title"> 연결 대상:</div>
+        <div class="targetName">BUMSOO LEE</div>
+        <div class="status" id="statusText">대상 상태 모니터링 시작...</div>
+
+        <div class="bar" aria-label="loading bar">
+        <div class="fill" id="fill"></div>
+        </div>
+        
+        <div class="row">
+            <div id="sessionOwner">session owner: user Y</div>
+            <div id="pct">0%</div>
+        </div>
+
+        <div class="protocol" id="protocolLine">protocol: 2026VLTN-14</div>
+    </div>
+
+    <div class="errorPage" id="errorPage" aria-hidden="true">
+        <div class="errorWrap">
+            <div class="errorTop">
+                <div>
+                    <div class="errorIcon" aria-hidden="true">▒</div>
+                    <h1 class="errorTitle" id="errorTitle">CRITICAL ERROR 428</h1>
+                    <div class="errorSub" id="errorSub">REQUEST BLOCKED · PRECONDITION REQUIRED</div>
+                    <div class="incident" id="errorBadge">INCIDENT 2026VLTN-14</div>
+                </div>
+            </div>
+
+            <div class="errorBody">
+                <div id="errorMsg">연결을 완료하려면 상대의 응답이 필요합니다.</div>
+
+                <div class="errorActions">
+                    <button class="btnPrimary" id="recoverBtn2">Attempt Recovery</button>
+                </div>
+
+                
+                <div class="captcha" id="captcha" aria-hidden="true">
+                    <div class="captchaHead">
+                        <div class="captchaTitle">>>> 1.HUMAN VERIFICATION</div>
+                        <div class="captchaSub" id="captchaSub">체크 후 다음 단계로 진행됩니다.</div>
+                    </div>
+
+                    <label class="captchaLine">
+                        <input type="checkbox" id="captchaChk">
+                        <span class="pxBox" aria-hidden="true"></span>
+                        <span class="captchaText" id="captchaText">로봇이 아닙니다.</span>
+                    </label>
+
+                    <div class="captchaHint" id="captchaHint">※ 확인을 위해 체크가 필요합니다.</div>
+                </div>
+<!--
+                <div class="captcha" id="puzzleSet1" aria-hidden="true">
+                    <div class="captchaHead">
+                        <div class="captchaTitle">1/3 · USER Y PREFERENCE CHECK</div>
+                        <div class="captchaSub">앞으로 넘어진 새</div>
+                    </div>
+
+                    <div class="captchaHint">
+                        가 포함된 이미지를 모두 선택하세요.
+                    </div>
+
+                    <div class="puzzleGrid" id="puzzleGrid1"></div>
+
+                    <div class="errorActoins">
+                        <button class="btnPrimary" id="puzzleSubmit1">확인</button>
+                    </div>
+
+                    <div class="captchaHint" id="puzzleFeedback1"></div> 
+                </div> -->
+            
+
+                <div class="metaSpacer"></div>
+
+                <div class="monoBox" id="errorDetail">
+                    session_owner=user Y<br>
+                    state=handoff_required<br>
+                    progress=99%<br>
+                    action=await_remote_response
+                </div>
+
+            
+            </div>
+        </div>
+    </div>
+
+    <div id="captchaStage" class="overlay" style="display:none;">
+        <div class="stageWrap">
+            <div class="stageRow">
+
+                <!-- SET 1-->
+                 <section class="capPanel" id="capPanel1" aria-hidden="true">
+                    <div class="capMeta">1/3 · USER Y PREFERENCE CHECK</div>
+                    <div class="capTitle">앞으로 넘어진 새</div>
+                    <div class="capDesc">가 포함된 이미지를 모두 선택하세요.</div>
+
+                    <div class="puzzleGrid" id="puzzleGrid1"></div>
+
+                    <div class="capActions">
+                        <button class="btnPrimary" id="puzzleSubmit1">확인</button>
+                    </div>
+
+                    <div class="capFeedback" id="puzzleFeedback1"></div>
+                 </section>
+
+                 <!-- SET 2 -->
+                  <section class="capPanel" id="capPanel2" aria-hidden="true" style="display:none;">
+                    <div class="capMeta">2/3 · LOST AND FOUND</div>
+                    <div class="capTitle">분실물</div>
+                    <div class="capDesc">이 포함된 이미지를 모두 선택하세요.</div>
+
+                    <div class="puzzleGrid" id="puzzleGrid2"></div>
+
+                     <div class="capActions">
+                        <button class="btnPrimary" id="puzzleSubmit2">확인</button>
+                    </div>
+
+
+                    <div class="capFeedback" id="puzzleFeedback2"></div>
+                  </section>
+
+                 <!-- SET 3-->
+                  <section class="capPanel" id="capPanel3" aria-hidden="true" style="display:none;">
+                    <div class="capMeta">3/3 · BUMSOO PREFERENCE TEST</div>
+                    <div class="capTitle">좋아하는 여성...◠ ̫◠</div>
+                    <div class="capDesc">이 포함된 이미지를 모두 선택하세요.</div>
+
+                    <div class="puzzleGrid" id="puzzleGrid3"></div>
+
+                    <div class="capActions">
+                        <button class="btnPrimary" id="puzzleSubmit3">확인</button>
+                    </div>
+
+                    <div class="capFeedback" id="puzzleFeedback3"></div>
+                  </section>
+            </div>
+        </div>
+    </div>
+
+    <div id="valentineStage" class="overlay" style="display:none;">
+        <div class="capPanel">
+            <div class="capMeta">ACCESS GRANTED</div>
+            <div class="capTitle" style="font-size:26px;">Would you be my Valentine?</div>
+            <div class="capDesc">ㅎ.,ㅎ</div>
+
+            <div class="capFeedback" id="valentineFeedback"></div>
+
+            <div class="capActions" style="justify-content: space-between; gap: 10px;">
+                <button class="btnPrimary" id="yesBtn">YES</button>
+                <button class="btnPrimary" id="noBtn">NO</button>
+            </div>
+
+    
+        </div>
+    </div>
+
+    <div id="noBattleStage" class="overlay" style="display:none;">
+        <div class="battleWrap">
+            <img id="battleImg" class="battleImg" src="" alt="NO scene">
+
+            <div class="battleBox" role="button" tabindex="0" aria-label="next dialog">
+                <div id="battleText" class="battleText"></div>
+                <div class="battleHint">
+                    <span class="battleArrow" aria-hidden="true">▶</span>
+                    <span class="battleHintText">계속</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="yesClearStage" class="overlay" style="display:none;">
+  <div class="clearWrap">
+    <div class="clearPanel" tabindex="0" aria-label="close clear screen">
+      <div class="clearMeta">오빠랑 나랑</div>
+      <div class="clearTitle" id="clearTitle">연결 성공</div>
+      <div class="clearSub" id="clearSub">LBS ❤︎ BSY</div>
+
+      <div class="clearLog" id="clearLog">
+        <div class="logLine">status: stable</div>
+        <div class="logLine">handshake: accepted</div>
+        <div class="logLine">connection: permanent</div>
+      </div>
+
+     
+    </div>
+
+    <div class="fireworks" id="fireworks" aria-hidden="true"></div>
+  </div>
+</div>
+
+    
+  
+
+  <script>
+    const fill = document.getElementById("fill");
+    const pct = document.getElementById("pct");
+    const statusText = document.getElementById("statusText");
+    const spinner = document.getElementById("spinner");
+    const heartIcon = document.getElementById("heartIcon");
+    const mainCardEl = document.getElementById("mainCard");
+    const sessionOwner = document.getElementById("sessionOwner");
+    
+    const errorPage = document.getElementById("errorPage");
+    const recoverBtn2 = document.getElementById("recoverBtn2");
+
+    const captcha = document.getElementById("captcha");
+    const captchaChk = document.getElementById("captchaChk");
+    const captchaText = document.getElementById("captchaText");
+    const captchaSub = document.getElementById("captchaSub");
+    const captchaHint = document.getElementById("captchaHint");
+    const errorBody = document.querySelector(".errorBody");
+
+    
+    const cursorHeart = document.createElement("div");
+    cursorHeart.className = "cursorHeart";
+    cursorHeart.style.display = "none";
+
+    cursorHeart.innerHTML = `
+    <svg width="26" height="26" viewBox="0 0 16 16" aria-hidden="true" 
+        style="display:block; image-rendering:pixelated;">
+    <g fill="currentColor">
+
+        <!-- row 0-->
+        <rect x="4" y="0" width="1" height="1"/><rect x="5" y="0" width="1" height="1"/>
+        <rect x="10" y="0" width="1" height="1"/><rect x="11" y="0" width="1" height="1"/>
+
+        <!-- row 1 -->
+        <rect x="3" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="5" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/>
+        <rect x="9" y="1" width="1" height="1"/><rect x="10" y="1" width="1" height="1"/><rect x="11" y="1" width="1" height="1"/><rect x="12" y="1" width="1" height="1"/>
+
+        <!-- row 2 -->
+        <rect x="2" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/>
+        <rect x="6" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="9" y="2" width="1" height="1"/>
+        <rect x="10" y="2" width="1" height="1"/><rect x="11" y="2" width="1" height="1"/><rect x="12" y="2" width="1" height="1"/><rect x="13" y="2" width="1" height="1"/>
+
+        <!-- row 3 -->
+        <rect x="2" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="5" y="3" width="1" height="1"/>
+        <rect x="6" y="3" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/>
+        <rect x="10" y="3" width="1" height="1"/><rect x="11" y="3" width="1" height="1"/><rect x="12" y="3" width="1" height="1"/><rect x="13" y="3" width="1" height="1"/>
+
+        <!-- row 4 -->
+        <rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/>
+        <rect x="6" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/>
+        <rect x="10" y="4" width="1" height="1"/><rect x="11" y="4" width="1" height="1"/><rect x="12" y="4" width="1" height="1"/><rect x="13" y="4" width="1" height="1"/>
+
+        <!-- row 5 -->
+        <rect x="3" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/>
+        <rect x="7" y="5" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="9" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/>
+        <rect x="11" y="5" width="1" height="1"/><rect x="12" y="5" width="1" height="1"/>
+
+        <!-- row 6 -->
+        <rect x="4" y="6" width="1" height="1"/><rect x="5" y="6" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="7" y="6" width="1" height="1"/>
+        <rect x="8" y="6" width="1" height="1"/><rect x="9" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/><rect x="11" y="6" width="1" height="1"/>
+
+        <!-- row 7 -->
+        <rect x="5" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/>
+        <rect x="8" y="7" width="1" height="1"/><rect x="9" y="7" width="1" height="1"/><rect x="10" y="7" width="1" height="1"/>
+
+        <!-- row 8 -->
+        <rect x="6" y="8" width="1" height="1"/><rect x="7" y="8" width="1" height="1"/>
+        <rect x="8" y="8" width="1" height="1"/><rect x="9" y="8" width="1" height="1"/>
+
+        <!-- row 9-->
+        <rect x="7" y="9" width="1" height="1"/><rect x="8" y="9" width="1" height="1"/>
+    </g>
+    </svg>
+    `;
+
+
+    document.body.appendChild(cursorHeart);
+
+    function showCursorHeart() {
+        cursorHeart.style.display = "block";
+        cursorHeart.classList.remove("pop");
+        void cursorHeart.offsetWidth;
+        cursorHeart.classList.add("pop");
+    }
+
+    function hideCursorHeart() {
+        cursorHeart.style.display = "none";
+    }
+
+    let progress = 0;
+    let timer = null;
+    let pausedOnce = false;
+    let lastStatus = "";
+
+    function setStatus(text) {
+        if (text === lastStatus) return;
+
+        lastStatus = text;
+        statusText.textContent = text;
+        
+        statusText.classList.remove("pulse");
+        void statusText.offsetWidth; 
+        statusText.classList.add("pulse");
+    }
+
+
+    function startLoading(){
+      setStatus ( "대상 상태 모니터링 시작...");
+      progress = 0;
+      fill.style.width = "0%";
+      pct.textContent = "0%";
+
+      timer = setInterval(() => {
+        // const step = Math.floor(Math.random()*3) + 1; // 1~4
+        let step;
+        if (progress >= 60) {
+            step = Math.floor(Math.random() * 2);
+        } else {
+            step = Math.floor(Math.random () * 3) + 1;
+        }
+
+        progress = Math.min(99, progress + step);
+
+        fill.style.width = progress + "%";
+        pct.textContent = progress + "%";
+
+
+
+        if(progress >= 99){
+            clearInterval(timer);
+            setStatus ( "연결 권한 확인 중...");
+            //사용자 승인 필요
+            setTimeout(showError, 3400);
+        } else if (progress >= 89) {
+            setStatus ( "자동 처리 한계 도달");
+            sessionOwner.innerHTML =
+                'session owner: user Y  <span class="owner-lost">out of control</span>';
+        } else if (progress >= 78) {
+            setStatus ("user Y 코어 반응 임계 초과");
+            sessionOwner.innerHTML =
+                'session owner: user Y <span class= "owner-unstable">unstable</span>';
+        } else if (progress >= 69) {
+            setStatus( "처리 지연 발생");
+        } else if (progress >= 60) {
+            setStatus ( "비정상 처리 패턴 감지");
+        } else if (progress >= 51) {
+            setStatus ("코어 반응 상승");
+        } else if (progress >= 42) {
+            setStatus ( "장기 저장 전환");
+        } else if (progress >= 33) {
+            setStatus ( "삭제 대상에서 제외");
+        } else if (progress >= 24) {
+            setStatus ( "중요 데이터로 분류");
+        } else if (progress >= 15) {
+            setStatus ( "반복 신호 감지");
+        }  else {
+            setStatus ( "대상 상태 모니터링 시작...");
+        }
+      }, 100);
+
+
+
+    }
+
+    function showError(){
+        setStatus("제어 권한 이관 필요");
+
+ 
+        mainCardEl.style.display = "none";
+
+     
+        document.getElementById("errorTitle").textContent = "CRITICAL ERROR 428";
+        document.getElementById("errorSub").textContent = "REQUEST BLOCKED · PRECONDITION REQUIRED";
+        document.getElementById("errorBadge").textContent = "INCIDENT 2026VLTN-14";
+        document.getElementById("errorMsg").textContent = "연결을 완료하려면 상대의 응답이 필요합니다.";
+
+        document.getElementById("errorDetail").innerHTML =
+            "session_owner=user_Y<br>" +
+            "state=handoff_required<br>" +
+            "awaiting=remote_response";
+
+    
+        errorPage.classList.add("show");
+        errorPage.setAttribute("aria-hidden","false");
+
+        captcha.classList.remove("show");
+        captcha.setAttribute("aria-hidden", "true");
+        captchaStep = 0;
+        captchaChk.checked = false;
+
+        recoverBtn2.disabled = false;
+        recoverBtn2.style.opacity = "";
+        recoverBtn2.style.cursor = "pointer";
+    }
+
+
+    let captchaStep = 0;
+    
+    recoverBtn2.addEventListener("click", () => {
+        if (!errorPage.classList.contains("show")) return;
+
+        errorBody.classList.remove("wipe");
+        void errorBody.offsetWidth;
+        errorBody.classList.add("wipe");
+
+        setTimeout(() => {
+           captcha.classList.add("show");
+           captcha.setAttribute("aria-hidden", "false");
+
+           recoverBtn2.disabled = true;
+           recoverBtn2.style.opacity = ".65";
+           recoverBtn2.style.cursor = "not-allowed";
+
+           // 1st stage
+           captchaStep = 1;
+           captchaText.textContent = "로봇이 아닙니다.";
+           captchaSub.textContent = "체크 후 다음 단계로 진행됩니다.";
+           captchaHint.textContent = "※ 확인을 위해 체크가 필요합니다.";
+        }, 160);
+    })
+
+
+
+    // events
+    recoverBtn2.addEventListener("mouseenter", () => {
+        if (!errorPage.classList.contains("show")) return;
+        showCursorHeart();
+    });
+
+    recoverBtn2.addEventListener("mouseleave", () => {
+        hideCursorHeart();
+    });
+
+    recoverBtn2.addEventListener("mousemove", (e) => {
+        if (cursorHeart.style.display === "none") return;
+
+        const offsetX = 20;
+        const offsetY = 34;
+
+        cursorHeart.style.left = Math.round(e.clientX + offsetX) + "px";
+        cursorHeart.style.top = Math.round(e.clientY + offsetY) + "px";
+    });
+
+
+    captchaChk.addEventListener("change", () => {
+        if (!captcha.classList.contains("show")) return;
+        if(!captchaChk.checked) return;
+
+        if (captchaStep ===1) {
+            captchaStep =2;
+
+            captchaSub.textContent = "검증 중...";
+            captchaHint.textContent = "...";
+
+            setTimeout( () => {
+                captchaChk.checked = false;
+                captchaText.textContent = "user Y 접근 권한 보유자입니다.";
+                captchaSub.textContent = "접근 권한 확인";
+                captchaHint.textContent = "※ 확인을 위해 체크가 필요합니다."
+            }, 260);
+
+        } else if (captchaStep === 2) {
+            captchaStep = 3;
+
+            captchaSub.textContent = "확인 완료"
+            captchaHint.textContent = "다음 절차로 이동합니다.";
+
+            setTimeout( () => {
+                showSet1Puzzle();
+            }, 320);
+        }
+    });
+
+
+
+
+    const startScreen = document.getElementById("startScreen");
+    const bootText = document.getElementById("bootText");
+    const mainCard = document.getElementById("mainCard");
+
+    setTimeout( () => {
+        bootText.textContent = "이범수 식별 완료";
+        spinner.style.display = "none";
+        heartIcon.style.display = "flex";
+        heartIcon.classList.add("pop");
+    }, 2600);
+    
+    setTimeout( () => {
+        heartIcon.classList.remove("pop");
+        void heartIcon.offsetWidth;
+        heartIcon.classList.add("pop");
+        bootText.textContent = "연결 대상 등록 완료 ";
+        
+    }, 4000)
+
+    setTimeout( () => {
+        heartIcon.classList.remove("pop");
+        void heartIcon.offsetWidth;
+        heartIcon.classList.add("pop");
+        bootText.textContent = "연결 절차 개시"
+    }, 5400)
+
+    setTimeout( () => {
+        startScreen.style.display = "none";
+        mainCard.style.display = "block";
+        startLoading();
+    }, 7700);
+
+
+
+
+const puzzleSet1 = document.getElementById("puzzleSet1");
+const puzzleGrid1 = document.getElementById("puzzleGrid1");
+const puzzleSubmit1 = document.getElementById("puzzleSubmit1");
+const puzzleFeedback1 = document.getElementById("puzzleFeedback1");
+
+const captchaStage = document.getElementById("captchaStage");
+const capPanel1 = document.getElementById("capPanel1");
+
+
+const set1Correct = ["01", "06","08"];
+let set1Selected = new Set();
+let set1Locked = false;
+
+const capPanel2 = document.getElementById("capPanel2");
+const puzzleGrid2 = document.getElementById("puzzleGrid2");
+const puzzleSubmit2 = document.getElementById("puzzleSubmit2");
+const puzzleFeedback2 = document.getElementById("puzzleFeedback2");
+
+const set2Correct = ["02", "05"];
+let set2Selected = new Set();
+let set2Locked = false;
+
+const capPanel3 = document.getElementById("capPanel3");
+const puzzleGrid3 = document.getElementById("puzzleGrid3");
+const puzzleSubmit3 = document.getElementById("puzzleSubmit3");
+const puzzleFeedback3 = document.getElementById("puzzleFeedback3");
+
+const set3Correct = ["01", "02", "03","04","05","06","07","08","09"];
+let set3Selected = new Set();
+let set3Locked = false;
+
+const set1MsgOK = "BSY: 글쎄, 무늬가 아니래두 ㅜ.,ㅜ !";
+const set1MsgNO = "LBS: 넘어진 게 아니라 무늬 아니야?";
+
+const set2MsgOK = "바보들";
+const set2MsgNO = "서로 분실물 찾아주기";
+
+const set3MsgOK = "ㅎ///ㅎ";
+const set3MsgNO = "그 거 뿐...? ㅠ.,ㅠ";
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+
+function blinkFeedback(el){
+    el.classList.remove("blink");
+    void el.offsetWidth;
+    el.classList.add("blink");
+}
+
+
+function showSet1Puzzle(){
+    errorPage.classList.remove("show");
+    errorPage.setAttribute("aria-hidden","true");
+
+    captchaStage.style.display = "flex";
+    capPanel1.setAttribute("aria-hidden","false");
+
+    puzzleGrid1.innerHTML = "";
+    set1Selected.clear();
+    set1Locked = false;
+    puzzleSubmit1.style.opacity = "";
+    puzzleSubmit1.style.cursor = "pointer";
+    puzzleFeedback1.textContent = "";
+    puzzleFeedback1.style.color = "#111";
+
+    for(let i=1; i<=9; i++){
+        const num = String(i).padStart(2, "0");
+
+        const div = document.createElement("div");
+        div.className = "puzzleItem";
+        div.dataset.id = num;
+
+        div.innerHTML = `<img src="2026VLTN14_CAPTCHAs/s1_${num}.jpg" alt="s1_${num}">`;
+
+        div.addEventListener("click", () => {
+            if (set1Locked) return;
+            
+            const id = div.dataset.id;
+
+            if(div.classList.contains("selected")){
+                div.classList.remove("selected");
+                set1Selected.delete(id);
+            } else{
+                div.classList.add("selected");
+                set1Selected.add(id);
+            }
+        });
+
+        puzzleGrid1.appendChild(div);
+    }
+}
+
+function showSet2Puzzle(){
+  capPanel2.style.display = "block";
+  capPanel2.setAttribute("aria-hidden","false");
+
+  puzzleGrid2.innerHTML = "";
+  set2Selected.clear();
+  set2Locked = false;
+
+  puzzleFeedback2.textContent = "";
+  puzzleFeedback2.style.color = "#111";
+
+  puzzleSubmit2.disabled = false;
+  puzzleSubmit2.style.opacity = "";
+  puzzleSubmit2.style.cursor = "pointer";
+
+  for(let i=1; i<=9; i++){
+    const num = String(i).padStart(2, "0");
+    const div = document.createElement("div");
+    div.className = "puzzleItem";
+    div.dataset.id = num;
+
+    div.innerHTML = `<img src="2026VLTN14_CAPTCHAs/s2_${num}.jpg" alt="s2_${num}">`;
+
+    div.addEventListener("click", () => {
+      if (set2Locked) return;
+
+      const id = div.dataset.id;
+      if(div.classList.contains("selected")){
+        div.classList.remove("selected");
+        set2Selected.delete(id);
+      } else{
+        div.classList.add("selected");
+        set2Selected.add(id);
+      }
+    });
+
+    puzzleGrid2.appendChild(div);
+  }
+}
+
+function showSet3Puzzle(){
+  capPanel3.style.display = "block";
+  capPanel3.setAttribute("aria-hidden","false");
+
+  puzzleGrid3.innerHTML = "";
+  set3Selected.clear();
+  set3Locked = false;
+
+  puzzleFeedback3.textContent = "";
+  puzzleFeedback3.style.color = "#111";
+
+  puzzleSubmit3.disabled = false;
+  puzzleSubmit3.style.opacity = "";
+  puzzleSubmit3.style.cursor = "pointer";
+
+  for(let i=1; i<=9; i++){
+    const num = String(i).padStart(2, "0");
+    const div = document.createElement("div");
+    div.className = "puzzleItem";
+    div.dataset.id = num;
+
+    div.innerHTML = `<img src="2026VLTN14_CAPTCHAs/s3_${num}.jpg" alt="s3_${num}">`;
+
+    div.addEventListener("click", () => {
+      if (set3Locked) return;
+
+      const id = div.dataset.id;
+      if(div.classList.contains("selected")){
+        div.classList.remove("selected");
+        set3Selected.delete(id);
+      } else{
+        div.classList.add("selected");
+        set3Selected.add(id);
+      }
+    });
+
+    puzzleGrid3.appendChild(div);
+  }
+}
+
+
+puzzleSubmit1.addEventListener("click", () => {
+    if(set1Locked) return;
+
+    const selected = [...set1Selected].sort().join(",");
+    const correct = [...set1Correct].slice().sort().join(",");
+
+    if(selected === correct) {
+        puzzleFeedback1.style.color = "#111";
+        puzzleFeedback1.textContent = set1MsgOK;
+        puzzleFeedback1.style.fontSize = "17px";
+        blinkFeedback(puzzleFeedback1);
+
+        showSet2Puzzle();
+        if (isMobile()) {
+            capPanel1.style.display = "none";
+        }
+
+
+        set1Locked = true;
+
+        puzzleSubmit1.disabled = true;
+        puzzleSubmit1.style.opacity = ".6";
+        puzzleSubmit1.style.cursor = "not-allowed";
+        
+        setTimeout( ()=> {
+            console.log("SET 1 CLEAR > SET 2");
+        }, 600);
+    } else{
+        puzzleFeedback1.textContent = set1MsgNO;
+        puzzleFeedback1.style.color = "#c7454e";
+        puzzleFeedback1.style.fontSize = "17px";
+        blinkFeedback(puzzleFeedback1);
+
+        set1Selected.clear();
+        [...puzzleGrid1.querySelectorAll(".puzzleItem.selected")]
+        .forEach(el => el.classList.remove("selected"));
+    }
+});
+
+puzzleSubmit2.addEventListener("click", () => {
+  if (set2Locked) return;
+
+  const selected = [...set2Selected].sort().join(",");
+  const correct = [...set2Correct].slice().sort().join(",");
+
+  if(selected === correct) {
+    puzzleFeedback2.style.color = "#111";
+    puzzleFeedback2.textContent = set2MsgOK;
+    puzzleFeedback2.style.fontSize = "17px";
+    blinkFeedback(puzzleFeedback2);
+
+    showSet3Puzzle();
+    if (isMobile()) {
+        capPanel2.style.display = "none";
+    }  
+
+
+    set2Locked = true;
+
+    puzzleSubmit2.disabled = true;
+    puzzleSubmit2.style.opacity = ".6";
+    puzzleSubmit2.style.cursor = "not-allowed";
+
+    setTimeout(() => {
+      console.log("SET 2 CLEAR > SET 3");
+ 
+    }, 600);
+
+  } else {
+    puzzleFeedback2.textContent = set2MsgNO;
+    puzzleFeedback2.style.color = "#c7454e";
+    puzzleFeedback2.style.fontSize = "17px";
+    blinkFeedback(puzzleFeedback2);
+
+    set2Selected.clear();
+    [...puzzleGrid2.querySelectorAll(".puzzleItem.selected")]
+      .forEach(el => el.classList.remove("selected"));
+  }
+});
+
+puzzleSubmit3.addEventListener("click", () => {
+  if (set3Locked) return;
+
+  const selected = [...set3Selected].sort().join(",");
+  const correct = [...set3Correct].slice().sort().join(",");
+
+  if(selected === correct) {
+    puzzleFeedback3.style.color = "#111";
+    puzzleFeedback3.textContent = set3MsgOK;
+    puzzleFeedback3.style.fontSize = "17px";
+    blinkFeedback(puzzleFeedback3);
+
+    set3Locked = true;
+    puzzleSubmit3.disabled = true;
+    puzzleSubmit3.style.opacity = ".6";
+    puzzleSubmit3.style.cursor = "not-allowed";
+
+    setTimeout(goValentine, 700);
+
+
+  } else {
+    puzzleFeedback3.textContent = set3MsgNO;
+    puzzleFeedback3.style.color = "#c7454e";
+    puzzleFeedback3.style.fontSize = "17px";
+    blinkFeedback(puzzleFeedback3);
+
+    set3Selected.clear();
+    [...puzzleGrid3.querySelectorAll(".puzzleItem.selected")]
+      .forEach(el => el.classList.remove("selected"));
+  }
+  
+});
+
+
+ // valentine page
+
+const valentineStage = document.getElementById("valentineStage");
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const valentineFeedback = document.getElementById("valentineFeedback");
+
+let noAvoidCount = 0;
+let lastDodgeAt = 0;
+
+function goValentine(){
+    captchaStage.style.display = "none";
+    valentineStage.style.display = "flex";
+}
+
+function dodgeNoButton(){
+    const now = performance.now();
+    if (now -lastDodgeAt < 90) return;
+    lastDodgeAt = now;
+    
+    if (noAvoidCount >=2) return;
+
+    noAvoidCount++;
+
+    const dx = Math.floor(Math.random() * 240)-120;
+    const dy = Math.floor(Math.random() * 140)-70;
+    
+    noBtn.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    valentineFeedback.textContent =
+      noAvoidCount === 1 ? " 뭘 누르려구...?" : "또...?";
+    valentineFeedback.style.color = "#111";
+    blinkFeedback(valentineFeedback);
+}
+
+function openNoModal(){
+    //showNoPopup()
+    valentineFeedback.textContent = "No...?";
+    valentineFeedback.style.color = "#c7454e";
+    blinkFeedback(valentineFeedback);
+}
+
+noBtn.addEventListener("mouseenter", dodgeNoButton);
+noBtn.addEventListener("mousemove", dodgeNoButton);
+
+noBtn.addEventListener("click", (e) => {
+    if (noAvoidCount<2) {
+        e.preventDefault();
+        dodgeNoButton();
+        return;
+    }
+    e.preventDefault();
+    openNoModal();
+    setTimeout(openNoBattle, 250);
+});
+
+//yesBtn.addEventListener("click",() =>{
+  //  valentineFeedback.textContent = "연 결 완 료 : LBS ❤︎ BSY"
+    //valentineFeedback.style.color = "rgba(255, 42, 81, 0.85)"
+    //blinkFeedback(valentineFeedback);
+
+    //yesBtn.disabled = true;
+    //noBtn.disabled = true;
+//});
+
+// ===== YES CLEAR logic =====
+const yesClearStage = document.getElementById("yesClearStage");
+const fireworks = document.getElementById("fireworks");
+const clearPanel = yesClearStage.querySelector(".clearPanel");
+
+function rand(min, max){
+  return Math.random() * (max - min) + min;
+}
+
+function burst(x, y, count = 26){
+
+  for(let i=0; i<count; i++){
+    const p = document.createElement("div");
+    p.className = "px";
+
+    const palette = [
+      "rgba(46,144,250,.95)",
+      "rgba(255,90,122,.95)",
+      "rgba(255,255,255,.90)"
+    ];
+    p.style.background = palette[Math.floor(Math.random()*palette.length)];
+
+    const dx = Math.floor(rand(-220, 220)) + "px";
+    const dy = Math.floor(rand(-200, 200)) + "px";
+    p.style.setProperty("--dx", dx);
+    p.style.setProperty("--dy", dy);
+
+    p.style.left = x + "px";
+    p.style.top  = y + "px";
+
+    p.style.animationDelay = (Math.random() * 120) + "ms";
+
+    fireworks.appendChild(p);
+
+
+    p.addEventListener("animationend", () => p.remove());
+  }
+}
+
+function startFireworks(){
+
+  const rect = fireworks.getBoundingClientRect();
+  const centers = [
+    { x: rect.width*0.30, y: rect.height*0.30 },
+    { x: rect.width*0.70, y: rect.height*0.28 },
+    { x: rect.width*0.52, y: rect.height*0.45 },
+  ];
+
+
+  clearPanel.classList.add("hit");
+  setTimeout(()=> clearPanel.classList.remove("hit"), 220);
+
+  
+  let t = 0;
+  centers.forEach((c, idx) => {
+    setTimeout(()=> burst(c.x, c.y, 30), t);
+    t += 220;
+  });
+
+  setTimeout(()=> burst(rect.width*rand(0.2,0.8), rect.height*rand(0.18,0.45), 34), 760);
+  setTimeout(()=> burst(rect.width*rand(0.2,0.8), rect.height*rand(0.18,0.45), 34), 980);
+}
+
+function openYesClear(){
+  valentineStage.style.display = "none";
+  yesClearStage.style.display = "flex";
+
+
+  startFireworks();
+}
+
+function closeYesClearAndReturn(){
+  yesClearStage.style.display = "none";
+  valentineStage.style.display = "flex";
+}
+
+
+
+yesBtn.addEventListener("click", () => {
+  
+  yesBtn.disabled = true;
+  noBtn.disabled = true;
+
+  valentineFeedback.textContent = "…";
+  valentineFeedback.style.color = "#111";
+  blinkFeedback(valentineFeedback);
+
+  setTimeout(openYesClear, 180);
+});
+
+
+// ===== NO battle logic =====
+const noBattleStage = document.getElementById("noBattleStage");
+const battleImg = document.getElementById("battleImg");
+const battleTextEl = document.getElementById("battleText");
+const battleBox = noBattleStage.querySelector(".battleBox");
+
+const NO_SCENES = [
+  { img: "2026VLTN14_CAPTCHAs/btnNO_01.jpg", text: "범수는 상대 성윤에게 헤롱헤롱해 있다!" },
+  { img: "2026VLTN14_CAPTCHAs/btnNO_02.jpg", text: "범수는 헤롱헤롱해서 거절을 할 수 없었다!" }
+];
+
+let noSceneIndex = 0;
+let typingTimer = null;
+let typingDone = false;
+
+function stopTyping(){
+  if (typingTimer) clearInterval(typingTimer);
+  typingTimer = null;
+}
+
+function typeText(text, speedMs = 28){
+  stopTyping();
+  battleTextEl.textContent = "";
+  typingDone = false;
+
+  let i = 0;
+  typingTimer = setInterval(() => {
+    battleTextEl.textContent += text[i];
+    i++;
+    if (i >= text.length){
+      stopTyping();
+      typingDone = true;
+    }
+  }, speedMs);
+}
+
+function showNoScene(index){
+  const scene = NO_SCENES[index];
+  battleImg.src = scene.img;
+  typeText(scene.text, 28);
+}
+
+function openNoBattle(){
+  valentineStage.style.display = "none";
+  noBattleStage.style.display = "flex";
+
+  noSceneIndex = 0;
+  showNoScene(noSceneIndex);
+}
+
+function closeNoBattleAndReturn(){
+  stopTyping();
+  noBattleStage.style.display = "none";
+  valentineStage.style.display = "flex";
+
+
+  noBtn.style.transform = "translate(0px, 0px)";
+  noAvoidCount = 0;
+  valentineFeedback.textContent = "";
+}
+
+function nextNoBattle(){
+  if (!typingDone){
+    stopTyping();
+    typingDone = true;
+    battleTextEl.textContent = NO_SCENES[noSceneIndex].text;
+    return;
+  }
+
+  noSceneIndex++;
+  if (noSceneIndex < NO_SCENES.length){
+    showNoScene(noSceneIndex);
+  } else{
+    closeNoBattleAndReturn();
+  }
+}
+
+battleBox.addEventListener("click", nextNoBattle);
+battleBox.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    nextNoBattle();
+  }
+});
+
+
+
+
+
+
+
+
+
+
+  </script>
+  
+</body>
+</html>
